@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +13,13 @@ import (
 	"github.com/csmith/addman/common"
 	"github.com/csmith/addman/eso"
 	"github.com/csmith/config"
+	"github.com/mgutz/ansi"
+)
+
+var (
+	prefixSuccess = ansi.Color("✓", "green")
+	prefixWarning = ansi.Color("⚠", "yellow")
+	prefixError = ansi.Color("X", "red")
 )
 
 type Resolution struct {
@@ -105,7 +111,7 @@ func main() {
 	for checkAgain {
 		checkAddons()
 
-		log.Printf("%d addons require updating or installing\n", len(updates))
+		fmt.Printf("%s %d addons require updating or installing\n", prefixSuccess, len(updates))
 		if len(updates) > 0 {
 			if err := downloadFileDetails(); err != nil {
 				panic(err)
@@ -174,8 +180,11 @@ func installUpdates(details eso.FileDetailsList) error {
 	for i := range details {
 		dirs, err := common.InstallZippedAddonFromUrl(conf.Eso.Path, details[i].DownloadUrl)
 		if err != nil {
-			return err
+			fmt.Printf("%s Failed to install '%s': %v\n", prefixError, details[i].Title, err)
+			continue
 		}
+
+		fmt.Printf("%s Installed '%s' version %s\n", prefixSuccess, details[i].Title, details[i].Version)
 		for j := range dirs {
 			conf.Eso.Checksums[dirs[j]] = details[i].Checksum
 		}
@@ -193,7 +202,7 @@ func checkAddons() {
 
 	for i := range addons {
 		if addons[i].Error != nil {
-			log.Printf("Error scanning addon: %v", addons[i].Error)
+			fmt.Printf("%s Failed to scan addon '%s': %v\n", prefixWarning, addons[i].Name, addons[i].Error)
 			continue
 		}
 
@@ -216,7 +225,7 @@ func checkAddon(name string) {
 	matching := conf.Eso.CachedFileList.ByPath(name)
 	switch len(matching) {
 	case 0:
-		log.Printf("No downloadable addons found providing '%s' - will not be updated", name)
+		fmt.Printf("%s No downloadable addons found providing '%s' - will not be updated\n", prefixWarning, name)
 	case 1:
 		checkMatchedAddon(name, matching[0])
 	default:
