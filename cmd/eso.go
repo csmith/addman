@@ -95,18 +95,24 @@ func main() {
 		}
 	}
 
-	checkAddons()
-
 	for i := range os.Args[1:] {
 		if v, err := strconv.Atoi(os.Args[i+1]); err == nil {
 			updates = append(updates, v)
 		}
 	}
 
-	log.Printf("%d addons require updating\n", len(updates))
-	if len(updates) > 0 {
-		if err := downloadFileDetails(); err != nil {
-			panic(err)
+	checkAgain := true
+	for checkAgain {
+		checkAddons()
+
+		log.Printf("%d addons require updating or installing\n", len(updates))
+		if len(updates) > 0 {
+			if err := downloadFileDetails(); err != nil {
+				panic(err)
+			}
+			updates = []int{}
+		} else {
+			checkAgain = false
 		}
 	}
 }
